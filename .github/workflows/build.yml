@@ -1,0 +1,44 @@
+name: Build ESP32-S3 Deauth Firmware
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install PlatformIO
+      run: pip install -U platformio
+
+    - name: Run PlatformIO Build
+      run: pio run -e esp32-s3-devkitc-1
+
+    - name: Prepare ZIP artifact
+      run: |
+        mkdir -p release_files
+        # Копируем нужные файлы из папки сборки
+        cp .pio/build/esp32-s3-devkitc-1/bootloader.bin release_files/bootloader.bin
+        cp .pio/build/esp32-s3-devkitc-1/partitions.bin release_files/partitions.bin
+        cp .pio/build/esp32-s3-devkitc-1/firmware.bin release_files/firmware.bin
+        
+        # Пакуем в ZIP
+        cd release_files
+        zip -r ../chiperOS_firmware.zip .
+        cd ..
+
+    - name: Upload Firmware ZIP
+      uses: actions/upload-artifact@v4
+      with:
+        name: chiperOS_firmware
+        path: chiperOS_firmware.zip
